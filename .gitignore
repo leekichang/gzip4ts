@@ -8,6 +8,9 @@ __pycache__/
 
 *.ipynb
 exp_results/
+checkpoints/
+tensorboard/
+plots/
 
 # Distribution / packaging
 .Python
