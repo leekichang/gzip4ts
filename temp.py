@@ -3,6 +3,7 @@ from tqdm import tqdm
 import numpy as np
 import sklearn.metrics as metrics
 from multiprocessing import Pool
+from statistics import *
 
 import ops
 import utils
@@ -60,16 +61,47 @@ class Knn(object):
     def run_quant_fp(self, data):
         x1, _ = data
         x1 = np.round(x1, self.dec_point)
-        Cx1 = len(gzip.compress(x1.tobytes()))
+        n_channel, seq_len = x1.shape
+        Cx1 = [len(gzip.compress(x1[i].tobytes())) for i in range(n_channel)]
         distance_from_x1 = []
         for x2, _ in self.trainset:
             x2 = np.round(x2, self.dec_point)
-            Cx2 = len(gzip.compress(x2.tobytes()))
-            x1x2 = np.concatenate([x1, x2])
-            Cx1x2 = len(gzip.compress(x1x2.tobytes()))
-            ncd = (Cx1x2 - min(Cx1, Cx2)) / max(Cx1, Cx2)
-            distance_from_x1.append(ncd)
+            distance_per_channel = 0
+            for i in range(n_channel):
+                Cx1_c = Cx1[i]
+                x1_c = x1[i]
+                
+                x2_c = x2[i]
+                Cx2_c = len(gzip.compress(x2_c.tobytes()))
+                
+                x1x2_c = np.concatenate([x1_c, x2_c])
+                Cx1x2_c = len(gzip.compress(x1x2_c.tobytes()))
+                
+                ncd = (Cx1x2_c - min(Cx1_c, Cx2_c)) / max(Cx1_c, Cx2_c)
+
+                # ncd = 1
+
+                mse = 1
+                mse = np.linalg.norm(x1_c - x2_c, ord=2) # / len(x1_c)
+                # mse = np.log(mse)
+                distance = harmonic_mean([ncd, mse]) #(ncd * mse)
+                # distance = ncd
+                distance_per_channel += distance
+            distance_from_x1.append(distance_per_channel)
         return distance_from_x1
+        
+        # x1, _ = data
+        # x1 = np.round(x1, self.dec_point)
+        # Cx1 = len(gzip.compress(x1.tobytes()))
+        # distance_from_x1 = []
+        # for x2, _ in self.trainset:
+        #     x2 = np.round(x2, self.dec_point)
+        #     Cx2 = len(gzip.compress(x1.tobytes()))
+        #     x1x2 = np.concatenate([x1, x2])
+        #     Cx1x2 = len(gzip.compress(x1x2.tobytes()))
+        #     ncd = (Cx1x2 - min(Cx1, Cx2)) / max(Cx1, Cx2)
+        #     distance_from_x1.append(ncd)
+        # return distance_from_x1
     
     def run_fp(self, data):
         x1, _ = data
@@ -95,7 +127,7 @@ class Knn(object):
             pred.append(predict_class)
         return testset.Y.tolist(), pred
 
-def load_dataset(path="../dataset", dataset='mitbih_arr'):
+def load_dataset(path="../dataset", dataset='mitbih_arr', sample=(-1, -1)):
     X = np.load(f'{path}/{dataset}/x_train.npy')
     Y = np.load(f'{path}/{dataset}/y_train.npy')
     trainset = DataManager(X, Y)
@@ -127,6 +159,8 @@ if __name__ == '__main__':
     # trainset[:,0] = ops.moving_average(trainset[:, 0], 3)
     # testset.X  = ops.calculate_derivative(testset.X)
     # trainset.X = ops.calculate_derivative(trainset.X)
+    
+    
     
     knn = Knn(trainset=trainset, args=args)
     y_true, y_pred = knn.run(testset, compress=f'{args.dtype}')

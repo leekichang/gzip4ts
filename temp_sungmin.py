@@ -209,7 +209,7 @@ def choose_trainset(trainset, args):
 if __name__ == '__main__':
     args = utils.parse_args()
     print(f'exp_name:{args.exp_name}\ndecimal:{args.decimal}\nnum shot:{args.n_shots}\ncompress type:{args.dtype}')
-    trainset, testset = load_dataset()
+    trainset, testset = load_dataset(dataset=args.dataset)
     trainset = choose_trainset(trainset, args)
     
     # testset.X  = ops.calculate_derivative(testset.X)
