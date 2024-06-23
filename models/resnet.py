@@ -36,19 +36,19 @@ class ResNet(nn.Module):
     def __init__(self, input_size, input_channel, num_label):
         super(ResNet, self).__init__()
         self.conv1 = nn.Conv1d(input_channel, 64, kernel_size = 1, stride = 1)
-        self.res1 = resConv1dBlock(64, 64, kernel_size = 3, stride = 1, layer_num = 3)
+        self.res1 = resConv1dBlock(64, 64, kernel_size = 3, stride = 1, layer_num = 1)
         self.pool1 = nn.AvgPool1d(kernel_size = 2)
 
         self.conv2 = nn.Conv1d(64, 128, kernel_size = 1, stride = 1)
-        self.res2 = resConv1dBlock(128, 128, kernel_size = 3, stride = 1, layer_num = 4)
+        self.res2 = resConv1dBlock(128, 128, kernel_size = 3, stride = 1, layer_num = 1)
         self.pool2 = nn.AvgPool1d(kernel_size = 2)
 
         self.conv3 = nn.Conv1d(128, 256, kernel_size = 1, stride = 1)
-        self.res3 = resConv1dBlock(256, 256,  kernel_size = 3, stride = 1, layer_num = 7)
+        self.res3 = resConv1dBlock(256, 256,  kernel_size = 3, stride = 1, layer_num = 1)
         self.pool3 = nn.AvgPool1d(kernel_size = 2)
 
         self.conv4 = nn.Conv1d(256, 128, kernel_size = 1, stride = 1)
-        self.res4 = resConv1dBlock(128, 128, kernel_size = 3, stride = 1, layer_num = 4)
+        self.res4 = resConv1dBlock(128, 128, kernel_size = 3, stride = 1, layer_num = 1)
         self.pool = nn.AvgPool1d(kernel_size = int(input_size / 8))
 
         self.fc = nn.Linear(128, num_label)

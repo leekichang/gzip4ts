@@ -61,12 +61,29 @@ def class_repr(class_idx):
     return ["LBBB", 'N', 'PB', 'PVC','RBBB','VF'][int(class_idx)]
 
 
-def load_dataset(path="../dataset", dataset='mitbih_arr'):
-    X = np.load(f'{path}/{dataset}/x_train.npy')
-    Y = np.load(f'{path}/{dataset}/y_train.npy')
+def load_dataset(path="../dataset", dataset='mitbih_arr', sample=(-1, -1), generate=False):
+    if generate:
+        # X = np.load(f'{path}/{dataset}/x_train.npy')
+        # Y = np.load(f'{path}/{dataset}/y_train.npy') # (18864,)
+        # print(len(X))
+        # random_idx = np.random.choice(len(X), 2000, replace=False)
+        # X = X[random_idx]
+        # Y = Y[random_idx]
+        # np.savez_compressed("./dataset/inference_dataset.npz", X=X, Y=Y)
+        data = np.load("./dataset/inference_dataset.npz")
+        X = data["X"]
+        Y = data["Y"]
+    else:
+        X = np.load(f'{path}/{dataset}/x_train.npy') # (75455, 1, 1800) float64
+        Y = np.load(f'{path}/{dataset}/y_train.npy') # (75455, ) int32
     trainset = DataManager(X, Y)
-    X = np.load(f'{path}/{dataset}/x_test.npy')
-    Y = np.load(f'{path}/{dataset}/y_test.npy')
+    if generate:
+        data = np.load("./dataset/inference_dataset.npz")
+        X = data["X"]
+        Y = data["Y"]
+    else:
+        X = np.load(f'{path}/{dataset}/x_test.npy') # (18864, 1, 1800)
+        Y = np.load(f'{path}/{dataset}/y_test.npy') # (18864,)
     testset = DataManager(X, Y)
     return trainset, testset
 

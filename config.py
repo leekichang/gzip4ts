@@ -1,5 +1,5 @@
 N_CLASS={'mitbih_arr'   :6 ,
-         'mitbih_id'    :48,
+         'mitbih_id'    :20,
          'mitbih_gender':2 ,
          'keti'         :2 ,
          'motion'       :4 ,

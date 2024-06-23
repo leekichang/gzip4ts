@@ -1,0 +1,37 @@
+exp_name:test
+decimal:4
+num shot:10
+compress type:quant_fp_novnone
+mitbih_arr numclass: 6.0
+ACC:0.3228  BalACC:0.6212
+
+
+exp_name:test
+decimal:4
+num shot:10
+compress type:quant_fp
+mitbih_arr numclass: 6.0
+ACC:0.3603  BalACC:0.6763
+
+
+exp_name:test
+decimal:4
+num shot:10
+compress type:quant_fp_novhybrid
+mitbih_arr numclass: 6.0
+ACC:0.3603  BalACC:0.6763
+
+
+exp_name:test
+decimal:4
+num shot:10
+compress type:quant_fp_novchannelwise
+mitbih_arr numclass: 6.0
+ACC:0.3228  BalACC:0.6212
+
+
+exp_name:test
+decimal:1
+num shot:20
+compress type:quant_fp_novnone
+wifi numclass: 7.0

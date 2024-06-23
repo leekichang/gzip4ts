@@ -1,6 +1,8 @@
+import os
 import gzip
-from tqdm import tqdm
 import numpy as np
+import pandas as pd
+from tqdm import tqdm
 import sklearn.metrics as metrics
 from multiprocessing import Pool
 from statistics import *
@@ -9,6 +11,8 @@ import ops
 import utils
 import config as cfg
 from DataManager import DataManager
+
+import time
 
 class Knn(object):
     def __init__(self, trainset, args):
@@ -57,8 +61,102 @@ class Knn(object):
             ncd = (Cx1x2 - min(Cx1, Cx2)) / max(Cx1, Cx2)
             distance_from_x1.append(ncd)
         return distance_from_x1
+
+    def run_novnone(self, data):
+        """
+        Applied: none
+        """
+        x1, _ = data
+        Cx1 = len(gzip.compress(x1.tobytes()))
+        distance_from_x1 = []
+        for x2, _ in self.trainset:
+            Cx2 = len(gzip.compress(x2.tobytes()))
+            x1x2 = np.concatenate([x1, x2])
+            Cx1x2 = len(gzip.compress(x1x2.tobytes()))
+            ncd = (Cx1x2 - min(Cx1, Cx2)) / max(Cx1, Cx2)
+            distance_from_x1.append(ncd)
+        return distance_from_x1
+
+    def run_novfpq(self, data):
+        """
+        Applied: floating point quantization
+        """
+        x1, _ = data
+        x1 = np.round(x1, self.dec_point)
+        Cx1 = len(gzip.compress(x1.tobytes()))
+        distance_from_x1 = []
+        for x2, _ in self.trainset:
+            x2 = np.round(x2, self.dec_point)
+            Cx2 = len(gzip.compress(x2.tobytes()))
+            x1x2 = np.concatenate([x1, x2])
+            Cx1x2 = len(gzip.compress(x1x2.tobytes()))
+            ncd = (Cx1x2 - min(Cx1, Cx2)) / max(Cx1, Cx2)
+            distance_from_x1.append(ncd)
+        return distance_from_x1
+
+    def run_novhybrid(self, data):
+        """
+        Applied: floating point quantization, hybrid distance
+        """
+        x1, _ = data
+        x1 = np.round(x1, self.dec_point)
+        Cx1 = len(gzip.compress(x1.tobytes()))
+        distance_from_x1 = []
+        
+        n_channel, seq_len = x1.shape
+        
+        for x2, _ in self.trainset:
+            x2 = np.round(x2, self.dec_point)
+            Cx2 = len(gzip.compress(x2.tobytes()))
+            x1x2 = np.concatenate([x1, x2])
+            Cx1x2 = len(gzip.compress(x1x2.tobytes()))
+            ncd = (Cx1x2 - min(Cx1, Cx2)) / max(Cx1, Cx2)
+            x1_c = x1
+            x2_c = x2
+            xd = x1_c - x2_c
+            
+            mse = sum([np.linalg.norm(xd[i], ord=2) for i in range(n_channel)])
+            
+            # mse = np.linalg.norm(xd, ord=2) # / len(x1_c)
+            distance = harmonic_mean([ncd, mse]) #(ncd * mse)
+            distance_from_x1.append(distance)
+        return distance_from_x1
+    
+    
+    def run_novchannelwise(self, data):
+        """
+        Applied: floating point quantization, channel-wise compression
+        """
+        x1, _ = data
+        x1 = np.round(x1, self.dec_point)
+        n_channel, seq_len = x1.shape
+        Cx1 = [len(gzip.compress(x1[i].tobytes())) for i in range(n_channel)]
+        distance_from_x1 = []
+        for x2, _ in self.trainset:
+            x2 = np.round(x2, self.dec_point)
+            distance_per_channel = 0
+            for i in range(n_channel):
+                Cx1_c = Cx1[i]
+                x1_c = x1[i]
+                
+                x2_c = x2[i]
+                Cx2_c = len(gzip.compress(x2_c.tobytes()))
+                
+                x1x2_c = np.concatenate([x1_c, x2_c])
+                Cx1x2_c = len(gzip.compress(x1x2_c.tobytes()))
+                
+                ncd = (Cx1x2_c - min(Cx1_c, Cx2_c)) / max(Cx1_c, Cx2_c)
+                distance = ncd
+
+                distance_per_channel += distance
+            distance_from_x1.append(distance_per_channel)
+        return distance_from_x1
     
     def run_quant_fp(self, data):
+        """
+        Applied: floating point quantization, channel-wise compression, hybrid distance
+        """
+        x1, _
         x1, _ = data
         x1 = np.round(x1, self.dec_point)
         n_channel, seq_len = x1.shape
@@ -79,30 +177,13 @@ class Knn(object):
                 
                 ncd = (Cx1x2_c - min(Cx1_c, Cx2_c)) / max(Cx1_c, Cx2_c)
 
-                # ncd = 1
-
-                mse = 1
-                mse = np.linalg.norm(x1_c - x2_c, ord=2) # / len(x1_c)
-                # mse = np.log(mse)
+                xd = x1_c - x2_c
+                mse = np.linalg.norm(xd, ord=2) # / len(x1_c)
                 distance = harmonic_mean([ncd, mse]) #(ncd * mse)
-                # distance = ncd
                 distance_per_channel += distance
             distance_from_x1.append(distance_per_channel)
         return distance_from_x1
         
-        # x1, _ = data
-        # x1 = np.round(x1, self.dec_point)
-        # Cx1 = len(gzip.compress(x1.tobytes()))
-        # distance_from_x1 = []
-        # for x2, _ in self.trainset:
-        #     x2 = np.round(x2, self.dec_point)
-        #     Cx2 = len(gzip.compress(x1.tobytes()))
-        #     x1x2 = np.concatenate([x1, x2])
-        #     Cx1x2 = len(gzip.compress(x1x2.tobytes()))
-        #     ncd = (Cx1x2 - min(Cx1, Cx2)) / max(Cx1, Cx2)
-        #     distance_from_x1.append(ncd)
-        # return distance_from_x1
-    
     def run_fp(self, data):
         x1, _ = data
         Cx1 = len(gzip.compress(x1.tobytes()))
@@ -117,10 +198,12 @@ class Knn(object):
     
     def run(self, testset, compress='quant_fp'):
         pred = []
-        with Pool(processes=None) as pool:
+        with Pool(processes=20) as pool:
             distance_lists = list(tqdm(pool.imap(getattr(self, f'run_{compress}'), testset), total=len(testset)))
 
         for distance_from_x1 in distance_lists:
+            # Per each test data, find the top K nearest neighbors
+            
             sorted_idx = np.argsort(np.array(distance_from_x1))
             top_k_class = self.trainset.Y[sorted_idx[:self.K]].tolist()
             predict_class = max(set(top_k_class), key=top_k_class.count)
@@ -148,13 +231,44 @@ def choose_trainset(trainset, args):
     trainset = DataManager(X, Y)
     return trainset
 
+def filter_testset(testset, args):
+    np.random.seed(args.seed)
+    X = []
+    Y = np.array([])
+    for i in range(cfg.N_CLASS[args.dataset]):
+        idx = np.random.choice(len(testset.Y[testset.Y==i]), args.n_shots, replace=False)
+        X.append(testset.X[testset.Y==i][idx])
+        Y = np.hstack([Y, np.ones(args.n_shots)*i])
+    X = np.concatenate(X, axis=0)
+    testset = DataManager(X, Y)
+    return testset
+
+def convert_array(array, specific_numbers):
+    """
+    주어진 NumPy 배열에서 특정 숫자는 1로, 나머지는 0으로 변환합니다.
+
+    Args:
+    array (np.ndarray): 변환할 NumPy 배열.
+    specific_numbers (list or set): 1로 바꿀 특정 숫자들의 목록.
+
+    Returns:
+    np.ndarray: 변환된 NumPy 배열.
+    """
+    # 주어진 배열과 특정 숫자를 비교하여 True/False로 구성된 마스크를 생성
+    mask = np.isin(array, specific_numbers)
+    
+    # 마스크를 이용하여 배열의 값을 변환
+    converted_array = np.where(mask, 1, 0)
+    
+    return converted_array
+
 if __name__ == '__main__':
     args = utils.parse_args()
     print(f'exp_name:{args.exp_name}\ndecimal:{args.decimal}\nnum shot:{args.n_shots}\ncompress type:{args.dtype}')
     trainset, testset = load_dataset(dataset=args.dataset)
-    print(args.dataset, max(trainset.Y))
     trainset = choose_trainset(trainset, args)
-
+    testset  = testset
+    print(args.dataset, "numclass:", max(trainset.Y)+1)
     # testset[:,0] = ops.moving_average(testset[:, 0], 3)
     # trainset[:,0] = ops.moving_average(trainset[:, 0], 3)
     # testset.X  = ops.calculate_derivative(testset.X)
@@ -164,12 +278,61 @@ if __name__ == '__main__':
     
     knn = Knn(trainset=trainset, args=args)
     y_true, y_pred = knn.run(testset, compress=f'{args.dtype}')
+    # y_true = convert_array(y_true, 1)
+    # y_pred = convert_array(y_pred, 1)
     acc = metrics.accuracy_score(y_true=y_true, y_pred=y_pred)
     bacc = metrics.balanced_accuracy_score(y_true=y_true, y_pred=y_pred)
     conf_mat = metrics.confusion_matrix(y_true=y_true, y_pred=y_pred)
-    print()
-    print(f'         ACC: { acc*100:>5.2f}%' , flush=True)
-    print(f'Balanced ACC: {bacc*100:>5.2f}%', flush=True)
-    print(conf_mat, flush=True)
+    # print()
+    # print(f'         ACC: { acc*100:>5.2f}%' , flush=True)
+    # print(f'Balanced ACC: {bacc*100:>5.2f}%', flush=True)
+    # print(conf_mat, flush=True)
+    if not os.path.isfile(f'./results/n_shot_{args.dataset}_{args.model}.csv'):
+        result = {args.n_shots:{args.model:bacc}}
+        df = pd.DataFrame.from_dict(result)
+    else:
+        df = pd.read_csv(f'./results/n_shot_{args.dataset}_{args.model}.csv', encoding='cp949', index_col=0)
+        # Check if the model exists in the DataFrame
+        if args.model in df.index:
+            # Check if the n_shots exists for the model
+            if str(args.n_shots) in df.columns:
+                df.loc[args.model, str(args.n_shots)] = bacc
+            else:
+                df[str(args.n_shots)] = None  # Add a new column for the n_shots
+                df.loc[args.model, str(args.n_shots)] = bacc
+        else:
+            # Add the model if it doesn't exist
+            df.loc[args.model] = None
+            df[str(args.n_shots)] = None
+            df.loc[sf.args.model, str(args.n_shots)] = bacc
+        # Rename the index column to the model name
+    df.index.name = 'Model'
+    # print(df)
+    df.to_csv(f'./results/n_shot_{args.dataset}_{args.model}.csv', encoding='cp949')
+    print(f'ACC:{acc:.4f}  BalACC:{bacc:.4f}\n\n', flush=True)
+    # if not os.path.isfile(f'./results/quant_{args.dataset}.csv'):
+    #     result = {args.decimal:{args.model:bacc}}
+    #     df = pd.DataFrame.from_dict(result)
+    # else:
+    #     df = pd.read_csv(f'./results/quant_{args.dataset}.csv', encoding='cp949', index_col=0)
+
+    #     # Check if the model exists in the DataFrame
+    #     if args.model in df.index:
+    #         # Check if the n_shots exists for the model
+    #         if str(args.decimal) in df.columns:
+    #             df.loc[args.model, str(args.decimal)] = bacc
+    #         else:
+    #             df[str(args.decimal)] = None  # Add a new column for the n_shots
+    #             df.loc[args.model, str(args.decimal)] = bacc
+    #     else:
+    #         # Add the model if it doesn't exist
+    #         df.loc[args.model] = None
+    #         df[str(args.decimal)] = None
+    #         df.loc[args.model, str(args.decimal)] = bacc
+
+    #     # Rename the index column to the model name
+    # df.index.name = 'Model'
+    # print(df)
+    # df.to_csv(f'./results/quant_{args.dataset}.csv', encoding='cp949')
     # utils.save_result(args, y_true, y_pred)
     # utils.load_result(args)

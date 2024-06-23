@@ -1,0 +1,85 @@
+exp_name:test
+decimal:4
+num shot:20
+compress type:quant_fp_novnone
+mitbih_arr numclass: 6.0
+ACC:0.5761  BalACC:0.7071
+
+
+exp_name:test
+decimal:4
+num shot:20
+compress type:quant_fp
+mitbih_arr numclass: 6.0
+ACC:0.5482  BalACC:0.7308
+
+
+exp_name:test
+decimal:4
+num shot:20
+compress type:quant_fp_novhybrid
+mitbih_arr numclass: 6.0
+ACC:0.5482  BalACC:0.7308
+
+
+exp_name:test
+decimal:4
+num shot:20
+compress type:quant_fp_novchannelwise
+mitbih_arr numclass: 6.0
+ACC:0.3654  BalACC:0.7033
+
+
+exp_name:test
+decimal:4
+num shot:20
+compress type:quant_fp_novround
+mitbih_arr numclass: 6.0
+ACC:0.3654  BalACC:0.7033
+
+
+exp_name:test
+decimal:2
+num shot:20
+compress type:quant_fp_novnone
+pamap2 numclass: 7.0
+ACC:0.4195  BalACC:0.4171
+
+
+exp_name:test
+decimal:2
+num shot:20
+compress type:quant_fp
+pamap2 numclass: 7.0
+ACC:0.9425  BalACC:0.9431
+
+
+exp_name:test
+decimal:2
+num shot:20
+compress type:quant_fp_novhybrid
+pamap2 numclass: 7.0
+ACC:0.7970  BalACC:0.8025
+
+
+exp_name:test
+decimal:2
+num shot:20
+compress type:quant_fp_novchannelwise
+pamap2 numclass: 7.0
+ACC:0.9245  BalACC:0.9251
+
+
+exp_name:test
+decimal:2
+num shot:20
+compress type:quant_fp_novround
+pamap2 numclass: 7.0
+ACC:0.7710  BalACC:0.7783
+
+
+exp_name:test
+decimal:4
+num shot:20
+compress type:quant_fp_novnone
+mitbih_arr numclass: 6.0

@@ -1,18 +1,13 @@
 import os
-import torch
 import numpy as np
-import torch.nn as nn
-import torch.optim as optim
+import pandas as pd
 from datetime import datetime
 import sklearn.metrics as metrics
-from torch.utils.data import DataLoader
 from sklearn.svm import SVC
 from sklearn.ensemble import AdaBoostClassifier, RandomForestClassifier
 
 import utils
-import config as cfg
-from models import *
-from DataManager import TensorDataset
+from temp import convert_array
 
 import torch.utils.tensorboard as tb
 
@@ -36,57 +31,35 @@ class MLTrainer:
         data = self.testset.X.reshape(B, -1)
         targets = self.testset.Y
         preds = self.model.predict(X=data)
+        targets = convert_array(targets, 2)
+        preds = convert_array(preds, 2)
         self.acc = metrics.accuracy_score(y_true=targets, y_pred=preds)
         self.bacc = metrics.balanced_accuracy_score(y_true=targets, y_pred=preds)
+        if not os.path.isfile(f'./results/n_shot_{self.args.dataset}_{self.args.model}.csv'):
+            result = {self.args.n_shots:{self.args.model:self.bacc}}
+            df = pd.DataFrame.from_dict(result)
+        else:
+            df = pd.read_csv(f'./results/n_shot_{self.args.dataset}_{self.args.model}.csv', encoding='cp949', index_col=0)
+
+            # Check if the model exists in the DataFrame
+            if self.args.model in df.index:
+                # Check if the n_shots exists for the model
+                if str(self.args.n_shots) in df.columns:
+                    df.loc[self.args.model, str(self.args.n_shots)] = self.bacc
+                else:
+                    df[str(self.args.n_shots)] = None  # Add a new column for the n_shots
+                    df.loc[self.args.model, str(self.args.n_shots)] = self.bacc
+            else:
+                # Add the model if it doesn't exist
+                df.loc[self.args.model] = None
+                df[str(self.args.n_shots)] = None
+                df.loc[self.args.model, str(self.args.n_shots)] = self.bacc
+
+            # Rename the index column to the model name
+        df.index.name = 'Model'
+        print(df)
+        df.to_csv(f'./results/n_shot_{self.args.dataset}_{self.args.model}.csv', encoding='cp949')
         print(f'ACC:{self.acc:.4f}  BalACC:{self.bacc:.4f}', flush=True)
-
-
-    # def train(self):
-    #     self.model.train()
-    #     losses = []
-    #     for X, Y in self.train_loader:
-    #         self.optimizer.zero_grad()
-    #         X = X.to(self.device)
-    #         Y = Y.to(self.device)
-    #         pred = self.model(X)
-    #         loss = self.criterion(pred, Y)
-    #         losses.append(loss.item())
-    #         loss.backward()
-    #         self.optimizer.step()
-    #     self.train_loss = np.mean(losses)
-        
-    #     if self.args.use_tb:
-    #         self.TB_WRITER.add_scalar("Train Loss", self.train_loss, self.epoch+1)
-        
-    # @torch.no_grad()
-    # def test(self):
-    #     self.model.eval()
-    #     preds, targets, losses = [], [], []
-    #     for X, Y in self.test_loader:
-    #         X = X.to(self.device)
-    #         Y = Y.to(self.device)
-    #         pred = self.model(X)
-    #         loss = self.criterion(pred, Y)
-    #         preds.append(np.argmax(pred.cpu().numpy(), axis=-1))
-    #         targets.append(Y.cpu().numpy())
-    #         losses.append(loss.item())
-            
-    #     preds = np.concatenate(preds)
-    #     targets = np.concatenate(targets)
-    #     self.acc = metrics.accuracy_score(y_true=targets, y_pred=preds)
-    #     self.bacc = metrics.balanced_accuracy_score(y_true=targets, y_pred=preds)
-    #     self.test_loss = np.mean(losses)
-    #     if self.args.use_tb:
-    #         self.TB_WRITER.add_scalar(f'Test Loss', self.test_loss, self.epoch+1)
-    #         self.TB_WRITER.add_scalar(f'Test Accuracy', self.acc, self.epoch+1)
-    #         self.TB_WRITER.add_scalar(f'Test Accuracy (Balanced)', self.bacc, self.epoch+1)
-        #     self.TB_WRITER.add_scalar(f'Sensitivity', sens, self.epoch+1)
-        #     self.TB_WRITER.add_scalar(f'F1-Score', f1, self.epoch+1)
-        #     self.TB_WRITER.add_scalar(f'Specificity', spec, self.epoch+1)
-        #     self.TB_WRITER.add_scalar(f'AUROC', auroc, self.epoch+1)
-    
-    def save_model(self):
-        torch.save(self.model.state_dict(), f'{self.save_path}/{self.epoch+1}.pth')
 
 if __name__ == '__main__':
     from tqdm import tqdm
@@ -95,10 +68,3 @@ if __name__ == '__main__':
     trainer.train()
     trainer.test()
     
-    # for epoch in tqdm(range(trainer.epochs)):
-    #     trainer.train()
-    #     trainer.test()
-    #     trainer.print_train_info()
-    #     if (trainer.epoch+1)%10 == 0 and args.save:
-    #         trainer.save_model()
-    #     trainer.epoch += 1

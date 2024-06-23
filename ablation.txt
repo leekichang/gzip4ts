@@ -1,0 +1,224 @@
+exp_name:test
+decimal:4
+num shot:20
+compress type:quant_fp_novnone
+mitbih_arr 6.0
+
+         ACC: 35.09%
+Balanced ACC: 66.52%
+[[1405    0    0    0    0    0]
+ [2389 2306 2368 2468 1124    0]
+ [   0    0 1332    0    0    0]
+ [ 258  986 1940  833   91  148]
+ [ 292   63  104   14  651    0]
+ [   0    0    0    0    0   92]]
+             20
+Model          
+knn    0.665222
+ACC:0.3509  BalACC:0.6652
+exp_name:test
+decimal:4
+num shot:20
+compress type:quant_fp_novchannelwise
+mitbih_arr 6.0
+
+         ACC: 35.09%
+Balanced ACC: 66.52%
+[[1405    0    0    0    0    0]
+ [2389 2306 2368 2468 1124    0]
+ [   0    0 1332    0    0    0]
+ [ 258  986 1940  833   91  148]
+ [ 292   63  104   14  651    0]
+ [   0    0    0    0    0   92]]
+             20
+Model          
+knn    0.665222
+ACC:0.3509  BalACC:0.6652
+exp_name:test
+decimal:4
+num shot:20
+compress type:quant_fp
+mitbih_arr 6.0
+
+         ACC: 33.25%
+Balanced ACC: 64.28%
+[[1405    0    0    0    0    0]
+ [4530 2728  113  152 2277  855]
+ [   0    0 1332    0    0    0]
+ [3411  392  156   54   67  176]
+ [ 316  122   14   11  661    0]
+ [   0    0    0    0    0   92]]
+             20
+Model          
+knn    0.642799
+ACC:0.3325  BalACC:0.6428
+exp_name:test
+decimal:4
+num shot:20
+compress type:quant_fp_novhybrid
+mitbih_arr 6.0
+
+         ACC: 33.25%
+Balanced ACC: 64.28%
+[[1405    0    0    0    0    0]
+ [4530 2728  113  152 2277  855]
+ [   0    0 1332    0    0    0]
+ [3411  392  156   54   67  176]
+ [ 316  122   14   11  661    0]
+ [   0    0    0    0    0   92]]
+             20
+Model          
+knn    0.642799
+ACC:0.3325  BalACC:0.6428
+exp_name:test
+decimal:4
+num shot:20
+compress type:quant_fp_novnone
+wifi 7.0
+
+         ACC: 15.68%
+Balanced ACC: 21.31%
+[[49 33  0  4  0 24  1]
+ [ 5 58  0  0  0 11  2]
+ [69 69  1  2  0 90  5]
+ [24 42  0  0  2 10  1]
+ [45 77  0  2  0 54  0]
+ [39 16  1  1  0 13  4]
+ [23 14  0  1  0 12  6]]
+             20
+Model          
+knn    0.213094
+ACC:0.1568  BalACC:0.2131
+exp_name:test
+decimal:4
+num shot:20
+compress type:quant_fp
+wifi 7.0
+
+         ACC: 44.94%
+Balanced ACC: 50.07%
+[[51 15  1 14  7  9 14]
+ [ 0 64 10  0  1  1  0]
+ [22 30 82  9 53  9 31]
+ [ 4 32  0 39  1  1  2]
+ [ 6 68 10  7 68  2 17]
+ [17  5  0  8  3 21 20]
+ [ 3  5  0  4  1  4 39]]
+             20
+Model          
+knn    0.500704
+ACC:0.4494  BalACC:0.5007
+exp_name:test
+decimal:4
+num shot:20
+compress type:quant_fp_novhybrid
+wifi 7.0
+
+         ACC: 15.68%
+Balanced ACC: 21.37%
+[[49 33  0  4  0 24  1]
+ [ 5 58  0  0  0 11  2]
+ [69 69  1  2  0 89  6]
+ [24 43  0  0  2  9  1]
+ [46 77  0  1  0 53  1]
+ [39 16  1  1  0 12  5]
+ [23 14  0  1  0 11  7]]
+             20
+Model          
+knn    0.213714
+ACC:0.1568  BalACC:0.2137
+exp_name:test
+decimal:4
+num shot:20
+compress type:quant_fp_novchannelwise
+wifi 7.0
+
+         ACC: 41.73%
+Balanced ACC: 46.50%
+[[46 17  1 12  9  9 17]
+ [ 3 61 10  0  2  0  0]
+ [13 27 77 16 66  9 28]
+ [ 2 32  0 37  0  1  7]
+ [ 5 67 13  9 62  2 20]
+ [19  6  0  8  2 20 19]
+ [ 3  2  1  7  3  5 35]]
+             20
+Model          
+knn    0.465037
+ACC:0.4173  BalACC:0.4650
+exp_name:test
+decimal:4
+num shot:20
+compress type:quant_fp_novnone
+pamap2 7.0
+
+         ACC: 79.10%
+Balanced ACC: 78.39%
+[[300   1   9   0   0   0   6]
+ [ 67  92 102   0   0   3  38]
+ [  9   7 205   0   0   0  29]
+ [  0   0   0 316   5   9   0]
+ [  0   0   0  16 161  41   0]
+ [  0   0   0   1  23 193  27]
+ [  0   2   6   0   2  15 315]]
+             20
+Model          
+knn    0.783938
+ACC:0.7910  BalACC:0.7839
+exp_name:test
+decimal:4
+num shot:20
+compress type:quant_fp
+pamap2 7.0
+
+         ACC: 89.00%
+Balanced ACC: 89.10%
+[[310   4   0   0   0   2   0]
+ [  0 214  72   0   3   0  13]
+ [  0  15 233   0   0   0   2]
+ [  0   0   0 330   0   0   0]
+ [  0   0   0   0 217   1   0]
+ [  0   0   4   4  17 190  29]
+ [  0  12  41   0   0   1 286]]
+             20
+Model          
+knn    0.890986
+ACC:0.8900  BalACC:0.8910
+exp_name:test
+decimal:4
+num shot:20
+compress type:quant_fp_novhybrid
+pamap2 7.0
+
+         ACC: 81.15%
+Balanced ACC: 80.59%
+[[303   1   6   0   0   0   6]
+ [ 55 108  96   0   0   2  41]
+ [  8   4 216   0   0   0  22]
+ [  0   0   0 317   5   8   0]
+ [  0   0   0   9 170  39   0]
+ [  0   0   0   0  21 193  30]
+ [  0   3   6   0   1  14 316]]
+             20
+Model          
+knn    0.805899
+ACC:0.8115  BalACC:0.8059
+exp_name:test
+decimal:4
+num shot:20
+compress type:quant_fp_novchannelwise
+pamap2 7.0
+
+         ACC: 87.10%
+Balanced ACC: 86.87%
+[[307   5   0   0   2   2   0]
+ [  0 198  78   0   4   2  20]
+ [  0  44 194   3   0   1   8]
+ [  0   0   0 330   0   0   0]
+ [  0   0   0   0 218   0   0]
+ [  0   0   0  12  29 192  11]
+ [  0   3  17   0   4  13 303]]
+             20
+Model          
+knn    0.868744
+ACC:0.8710  BalACC:0.8687
