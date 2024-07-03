@@ -8,7 +8,7 @@ from datetime import datetime
 from torch.utils.data import DataLoader
 
 import utils
-import config as cfg
+import codes.DataConfig as cfg
 from models import *
 from DataManager import TensorDataset
 from time import time

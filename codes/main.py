@@ -9,7 +9,7 @@ from statistics import *
 
 import ops
 import utils
-import config as cfg
+import codes.DataConfig as cfg
 from DataManager import DataManager
 
 import time
@@ -19,50 +19,8 @@ class Knn(object):
         self.trainset  = trainset
         self.dec_point = args.decimal
         self.K         = args.k
-    
-    def run_diff(self, data):
-        x1, _ = data
-        distance_from_x1 = []
-        for x2, _ in self.trainset:
-            distance_from_x1.append(np.sum(x1-x2))
-        return distance_from_x1
 
-    def run_cosine(self, data):
-        x1, _ = data
-        distance_from_x1 = []
-        for x2, _ in self.trainset:
-            distance_from_x1.append(np.sum(x1.reshape(-1)*x2.reshape(-1)))
-        return distance_from_x1
-
-    def run_str(self, data):
-        x1, _ = data
-        s1 = ' '.join(x1.astype(str))
-        Cx1 = len(gzip.compress(s1.encode()))
-        distance_from_x1 = []
-        for x2, _ in self.trainset:
-            s2 = ' '.join(x2.astype(str))
-            Cx2 = len(gzip.compress(s2.encode()))
-            x1x2 = ' '.join([s1, s2])
-            Cx1x2 = len(gzip.compress(x1x2.encode()))
-            ncd = (Cx1x2 - min(Cx1, Cx2)) / max(Cx1, Cx2)
-            distance_from_x1.append(ncd)
-        return distance_from_x1
-        
-    def run_quant_str(self, data):
-        x1, _ = data
-        s1 = ' '.join(np.round(x1, self.dec_point).astype(str))
-        Cx1 = len(gzip.compress(s1.encode()))
-        distance_from_x1 = []
-        for x2, _ in self.trainset:
-            s2 = ' '.join(np.round(x2, self.dec_point).astype(str))
-            Cx2 = len(gzip.compress(s2.encode()))
-            x1x2 = ' '.join([s1, s2])
-            Cx1x2 = len(gzip.compress(x1x2.encode()))
-            ncd = (Cx1x2 - min(Cx1, Cx2)) / max(Cx1, Cx2)
-            distance_from_x1.append(ncd)
-        return distance_from_x1
-
-    def run_novnone(self, data):
+    def run_default(self, data):
         """
         Applied: none
         """
@@ -77,7 +35,7 @@ class Knn(object):
             distance_from_x1.append(ncd)
         return distance_from_x1
 
-    def run_novfpq(self, data):
+    def run_fpq(self, data):
         """
         Applied: floating point quantization
         """
@@ -94,7 +52,7 @@ class Knn(object):
             distance_from_x1.append(ncd)
         return distance_from_x1
 
-    def run_novhybrid(self, data):
+    def run_hybrid(self, data):
         """
         Applied: floating point quantization, hybrid distance
         """
@@ -123,7 +81,7 @@ class Knn(object):
         return distance_from_x1
     
     
-    def run_novchannelwise(self, data):
+    def run_cw(self, data):
         """
         Applied: floating point quantization, channel-wise compression
         """
@@ -152,7 +110,7 @@ class Knn(object):
             distance_from_x1.append(distance_per_channel)
         return distance_from_x1
     
-    def run_quant_fp(self, data):
+    def run_all(self, data):
         """
         Applied: floating point quantization, channel-wise compression, hybrid distance
         """
@@ -183,20 +141,8 @@ class Knn(object):
                 distance_per_channel += distance
             distance_from_x1.append(distance_per_channel)
         return distance_from_x1
-        
-    def run_fp(self, data):
-        x1, _ = data
-        Cx1 = len(gzip.compress(x1.tobytes()))
-        distance_from_x1 = []
-        for x2, _ in self.trainset:
-            Cx2 = len(gzip.compress(x2.tobytes()))
-            x1x2 = np.concatenate([x1, x2])
-            Cx1x2 = len(gzip.compress(x1x2.tobytes()))
-            ncd = (Cx1x2 - min(Cx1, Cx2)) / max(Cx1, Cx2)
-            distance_from_x1.append(ncd)
-        return distance_from_x1
     
-    def run(self, testset, compress='quant_fp'):
+    def run(self, testset, compress='all'):
         pred = []
         with Pool(processes=20) as pool:
             distance_lists = list(tqdm(pool.imap(getattr(self, f'run_{compress}'), testset), total=len(testset)))
@@ -264,15 +210,11 @@ def convert_array(array, specific_numbers):
 
 if __name__ == '__main__':
     args = utils.parse_args()
-    print(f'exp_name:{args.exp_name}\ndecimal:{args.decimal}\nnum shot:{args.n_shots}\ncompress type:{args.dtype}')
+    print(f'exp_name:{args.exp_name}\ndecimal:{args.decimal}\nnum shot:{args.n_shots}\nmethod:{args.dtype}')
     trainset, testset = load_dataset(dataset=args.dataset)
     trainset = choose_trainset(trainset, args)
     testset  = testset
     print(args.dataset, "numclass:", max(trainset.Y)+1)
-    # testset[:,0] = ops.moving_average(testset[:, 0], 3)
-    # trainset[:,0] = ops.moving_average(trainset[:, 0], 3)
-    # testset.X  = ops.calculate_derivative(testset.X)
-    # trainset.X = ops.calculate_derivative(trainset.X)
     
     
     

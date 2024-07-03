@@ -7,7 +7,7 @@ from sklearn.svm import SVC
 from sklearn.ensemble import AdaBoostClassifier, RandomForestClassifier
 
 import utils
-from temp import convert_array
+from codes.main import convert_array
 
 import torch.utils.tensorboard as tb
 

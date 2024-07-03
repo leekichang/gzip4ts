@@ -1,4 +1,0 @@
-Namespace(batch_size=120, dataset='mitbih_arr', decimal=4, dtype='str', epochs=50, exp_name='test', k=3, model='CNN', n_shots=5, save=True, seed=6206, use_tb=False)
-36.66046401262283
-8106135552
-Namespace(batch_size=120, dataset='mitbih_arr', decimal=4, dtype='str', epochs=50, exp_name='test', k=3, model='ResNet', n_shots=5, save=True, seed=6206, use_tb=False)

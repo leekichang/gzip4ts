@@ -4,7 +4,7 @@ import argparse
 import numpy as np
 
 import models
-import config as cfg
+import codes.DataConfig as cfg
 from DataManager import DataManager
 
 def str2bool(v):
@@ -28,7 +28,7 @@ def parse_args():
     parser.add_argument('--decimal'   , help='decimal point'     , type=int     , default=4)
     parser.add_argument('--n_shots'   , help='number of knn data', type=int     , default=5)
     parser.add_argument('--k'         , help='top-k for knn'     , type=int     , default=3)
-    parser.add_argument('--dtype'     , help='data type'         , type=str     , default='str')
+    parser.add_argument('--method'    , help='method'            , type=str     , default='str', choices=['default', 'fpq', 'hybrid', 'cw', 'all'])
     # Neural Network Trainer Arguments
     parser.add_argument('--model'     , help='model'             , type=str     , default='CNN')
     parser.add_argument('--epochs'    , help='training epoch'    , type=int     , default=50)
@@ -46,14 +46,14 @@ def save_result(args, y_true, y_pred, save_path='./exp_results'):
             'seed': args.seed,
             'decimal': args.decimal,
             'n_shots': args.n_shots,
-            'dtype': args.dtype,
+            'method': args.method,
             'y_true': y_true,
             'y_pred': y_pred}
-    with open(f'{save_path}/{args.exp_name}_{args.decimal}_{args.n_shots}_{args.k}_{args.dtype}.pickle', 'wb') as f:
+    with open(f'{save_path}/{args.exp_name}_{args.decimal}_{args.n_shots}_{args.k}_{args.method}.pickle', 'wb') as f:
         pickle.dump(info, f, pickle.HIGHEST_PROTOCOL)
 
 def load_result(args, save_path='./exp_results'):
-    with open(f'{save_path}/{args.exp_name}_{args.decimal}_{args.n_shots}_{args.k}_{args.dtype}.pickle', 'rb') as f:
+    with open(f'{save_path}/{args.exp_name}_{args.decimal}_{args.n_shots}_{args.k}_{args.method}.pickle', 'rb') as f:
         info = pickle.load(f)
     #print(info)
     
