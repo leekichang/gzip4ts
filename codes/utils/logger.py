@@ -13,9 +13,11 @@ def measure_memory(process: psutil.Process, log_file_memory:Path):
     """
     with open(log_file_memory, 'a') as f:
         while True:
+            current_time = time.time()
             memory = process.memory_info().rss
-            f.write(f"{time.time()},{memory}\n")
-            time.sleep(0.1)
+            f.write(f"{current_time},{memory}\n")
+            f.flush()
+            time.sleep(0.5 - (time.time() - current_time - 0.01))
     
 
 class ExpLogger:
@@ -47,6 +49,14 @@ class ExpLogger:
         #         with open(log_file, 'w') as f:
         #             f.write("")
         
+        if self.log_file_accuracy is not None:
+            with open(self.log_file_accuracy, 'w') as f:
+                f.write("time,accuracy\n")
+        
+        if self.log_file_time is not None:
+            with open(self.log_file_time, 'w') as f:
+                f.write("name,time\n")
+        
         self.start_time = {}
         self.memory_process = None
         self.main_process = psutil.Process()
@@ -72,7 +82,10 @@ class ExpLogger:
         if self.log_file_memory is None:
             return
         
-        self.memory_process = Process(target=measure_memory, args=(self.main_process,))
+        with open(self.log_file_memory, 'w') as f:
+            f.write("time,memory\n")
+                
+        self.memory_process = Process(target=measure_memory, args=(self.main_process, self.log_file_memory))
         self.memory_process.start()
     
     def end_measure_memory(self):

@@ -4,8 +4,8 @@ import pickle
 import numpy as np
 
 import models
-import codes.data.config as cfg
-from codes.data.types import DataManager
+import data.config as cfg
+from data.types import DataManager
 
 def check_path(path):
     os.makedirs(path, exist_ok=True)
