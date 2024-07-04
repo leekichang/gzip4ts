@@ -7,7 +7,6 @@ from sklearn.svm import SVC
 from sklearn.ensemble import AdaBoostClassifier, RandomForestClassifier
 
 import utils
-from codes.main import convert_array
 
 import torch.utils.tensorboard as tb
 
@@ -31,8 +30,8 @@ class MLTrainer:
         data = self.testset.X.reshape(B, -1)
         targets = self.testset.Y
         preds = self.model.predict(X=data)
-        targets = convert_array(targets, 2)
-        preds = convert_array(preds, 2)
+        targets = utils.convert_array(targets, 2)
+        preds = utils.convert_array(preds, 2)
         self.acc = metrics.accuracy_score(y_true=targets, y_pred=preds)
         self.bacc = metrics.balanced_accuracy_score(y_true=targets, y_pred=preds)
         if not os.path.isfile(f'./results/n_shot_{self.args.dataset}_{self.args.model}.csv'):

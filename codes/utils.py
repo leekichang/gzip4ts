@@ -24,9 +24,9 @@ def parse_args():
     parser.add_argument('--dataset'   , help='dataset'           , type=str     , default='mitbih_arr')
     parser.add_argument('--seed'      , help='random seed'       , type=int     , default=6206)
     parser.add_argument('--save'      , help='save exp result?'  , type=str2bool, default=True)
+    parser.add_argument('--n_shots'   , help='n per class data', type=int     , default=5)
     # kNN Arguments
     parser.add_argument('--decimal'   , help='decimal point'     , type=int     , default=4)
-    parser.add_argument('--n_shots'   , help='number of knn data', type=int     , default=5)
     parser.add_argument('--k'         , help='top-k for knn'     , type=int     , default=3)
     parser.add_argument('--method'    , help='method'            , type=str     , default='str', choices=['default', 'fpq', 'hybrid', 'cw', 'all'])
     # Neural Network Trainer Arguments
@@ -62,6 +62,11 @@ def class_repr(class_idx):
 
 
 def load_dataset(path="../dataset", dataset='mitbih_arr', sample=(-1, -1), generate=False):
+    """
+    TODO: 없으면 만들고 있으면 불러오기
+    """
+    
+    
     if generate:
         # X = np.load(f'{path}/{dataset}/x_train.npy')
         # Y = np.load(f'{path}/{dataset}/y_train.npy') # (18864,)
@@ -104,3 +109,22 @@ def build_model(args):
     n_channel         = cfg.dataset_cfg[args.dataset]['n_channel']
     n_class           = cfg.N_CLASS[args.dataset]
     return getattr(models, args.model)(input_size, input_channel=n_channel, num_label=n_class)
+
+def convert_array(array, specific_numbers):
+    """
+    주어진 NumPy 배열에서 특정 숫자는 1로, 나머지는 0으로 변환합니다.
+
+    Args:
+    array (np.ndarray): 변환할 NumPy 배열.
+    specific_numbers (list or set): 1로 바꿀 특정 숫자들의 목록.
+
+    Returns:
+    np.ndarray: 변환된 NumPy 배열.
+    """
+    # 주어진 배열과 특정 숫자를 비교하여 True/False로 구성된 마스크를 생성
+    mask = np.isin(array, specific_numbers)
+    
+    # 마스크를 이용하여 배열의 값을 변환
+    converted_array = np.where(mask, 1, 0)
+    
+    return converted_array
