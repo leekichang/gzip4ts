@@ -9,9 +9,9 @@ import sklearn.metrics as metrics
 from torch.utils.data import DataLoader
 
 import utils
-import codes.DataConfig as cfg
+import codes.data.DataConfig as cfg
 from models import *
-from DataManager import TensorDataset
+from codes.data.DataManager import TensorDataset
 
 import torch.utils.tensorboard as tb
 

@@ -4,8 +4,8 @@ import argparse
 import numpy as np
 
 import models
-import codes.DataConfig as cfg
-from DataManager import DataManager
+import codes.data.DataConfig as cfg
+from codes.data.DataManager import DataManager
 
 def str2bool(v):
     if isinstance(v, bool):
