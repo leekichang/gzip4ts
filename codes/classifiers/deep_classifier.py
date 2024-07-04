@@ -8,10 +8,10 @@ from datetime import datetime
 import sklearn.metrics as metrics
 from torch.utils.data import DataLoader
 
-import utils
-import codes.data.DataConfig as cfg
+import codes.utils.utils as utils
+import codes.data.config as cfg
 from models import *
-from codes.data.DataManager import TensorDataset
+from codes.data.types import TensorDataset
 
 import torch.utils.tensorboard as tb
 

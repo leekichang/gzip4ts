@@ -6,7 +6,7 @@ import sklearn.metrics as metrics
 from sklearn.svm import SVC
 from sklearn.ensemble import AdaBoostClassifier, RandomForestClassifier
 
-import utils
+import codes.utils.utils as utils
 
 import torch.utils.tensorboard as tb
 

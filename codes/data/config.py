@@ -1,3 +1,5 @@
+__all__ = ['N_CLASS', 'dataset_cfg']
+
 N_CLASS={'mitbih_arr'   :6 ,
          'mitbih_id'    :20,
          'mitbih_gender':2 ,

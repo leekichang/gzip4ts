@@ -8,9 +8,9 @@ from multiprocessing import Pool
 from statistics import *
 
 import ops
-import utils
-import codes.data.DataConfig as cfg
-from codes.data.DataManager import DataManager
+import codes.utils.utils as utils
+import codes.data.config as cfg
+from codes.data.types import DataManager
 
 import time
 
@@ -156,38 +156,7 @@ class Knn(object):
             pred.append(predict_class)
         return testset.Y.tolist(), pred
 
-def load_dataset(path="../dataset", dataset='mitbih_arr', sample=(-1, -1)):
-    X = np.load(f'{path}/{dataset}/x_train.npy')
-    Y = np.load(f'{path}/{dataset}/y_train.npy')
-    trainset = DataManager(X, Y)
-    X = np.load(f'{path}/{dataset}/x_test.npy')
-    Y = np.load(f'{path}/{dataset}/y_test.npy')
-    testset = DataManager(X, Y)
-    return trainset, testset
 
-def choose_trainset(trainset, args):
-    np.random.seed(args.seed)
-    X = []
-    Y = np.array([])
-    for i in range(cfg.N_CLASS[args.dataset]):
-        idx = np.random.choice(len(trainset.Y[trainset.Y==i]), args.n_shots, replace=False)
-        X.append(trainset.X[trainset.Y==i][idx])
-        Y = np.hstack([Y, np.ones(args.n_shots)*i])
-    X = np.concatenate(X, axis=0)
-    trainset = DataManager(X, Y)
-    return trainset
-
-def filter_testset(testset, args):
-    np.random.seed(args.seed)
-    X = []
-    Y = np.array([])
-    for i in range(cfg.N_CLASS[args.dataset]):
-        idx = np.random.choice(len(testset.Y[testset.Y==i]), args.n_shots, replace=False)
-        X.append(testset.X[testset.Y==i][idx])
-        Y = np.hstack([Y, np.ones(args.n_shots)*i])
-    X = np.concatenate(X, axis=0)
-    testset = DataManager(X, Y)
-    return testset
 
 
 if __name__ == '__main__':
