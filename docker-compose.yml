@@ -1,0 +1,20 @@
+services:
+  gzip4ts:
+    container_name: gzip4ts_c
+    build: .
+    privileged: true
+    command: /bin/bash
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
+    network_mode: "host"
+    ipc: host
+    volumes:
+      - ./:/workspace
+      - ../../dataset:/dataset_kichang
+    deploy:
+      resources:
+        reservations:
+          devices:
+          - driver: nvidia
+            count: 2
+            capabilities: [gpu]
