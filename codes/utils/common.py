@@ -3,7 +3,7 @@ import pickle
 
 import numpy as np
 
-import models
+import classifiers.models
 import data.config as cfg
 from data.types import DataManager
 

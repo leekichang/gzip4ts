@@ -1,2 +1,2 @@
-from models.resnet import *
-from models.cnn import *
+from classifiers.models.resnet import *
+from classifiers.models.cnn import *

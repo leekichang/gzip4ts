@@ -8,7 +8,7 @@ from datetime import datetime
 import sklearn.metrics as metrics
 from torch.utils.data import DataLoader
 
-import codes.utils.utils as utils
+import codes.utils.common as common
 import codes.data.config as cfg
 from models import *
 from codes.data.types import TensorDataset
@@ -22,8 +22,8 @@ class SupervisedTrainer:
         os.makedirs(self.save_path, exist_ok=True)
         
         self.trainset,\
-        self.testset      = utils.load_dataset(dataset=args.dataset)
-        self.trainset     = utils.choose_trainset(self.trainset, args)
+        self.testset      = common.load_dataset(dataset=args.dataset)
+        self.trainset     = common.choose_trainset(self.trainset, args)
         
         self.trainset     = TensorDataset(self.trainset)
         self.testset      = TensorDataset(self.testset)
@@ -34,7 +34,7 @@ class SupervisedTrainer:
 
         self.train_loader = DataLoader(self.trainset, batch_size=args.batch_size, shuffle=True , drop_last=False)
         self.test_loader  = DataLoader(self.testset , batch_size=args.batch_size, shuffle=False, drop_last=False)
-        self.model        = utils.build_model(args)# ResNet(input_size=input_size, input_channel=n_channel, num_label=n_class)
+        self.model        = common.build_model(args)# ResNet(input_size=input_size, input_channel=n_channel, num_label=n_class)
         
         self.model.to(self.device)
         self.optimizer    = optim.Adam(self.model.parameters(), lr=0.001)
@@ -124,7 +124,7 @@ class SupervisedTrainer:
 
 if __name__ == '__main__':
     from tqdm import tqdm
-    args = utils.parse_args()
+    args = common.parse_args()
     torch.manual_seed(args.seed)
     trainer = SupervisedTrainer(args)
     for epoch in tqdm(range(trainer.epochs)):

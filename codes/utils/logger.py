@@ -34,15 +34,46 @@ class ExpLogger:
         'end_measure_memory()' method ends the process.
     
     """
-    def __init__(self, log_dir:str, log_accuracy:bool=True, log_memory:bool=True, log_time:bool=True):
-        self.log_start_time = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+    def __init__(self, log_dir:str, exp_name:str, tag:str, default_overwrite=None, log_start_time=True, log_accuracy:bool=True, log_memory:bool=True, log_time:bool=True):
+        log_start_time = datetime.now(tz="Asia/Seoul").strftime("%Y-%m-%d_%H:%M:%S") if log_start_time else ""
         
-        self.log_dir = Path(log_dir) / self.log_start_time
-        self.log_dir.mkdir(parents=True, exist_ok=True)
+        self.log_dir = Path(log_dir) / exp_name / f"{log_start_time}_{tag}"
+        
+        self.terminate = False
         
         self.log_file_accuracy = self.log_dir / 'accuracy.csv' if log_accuracy else None
         self.log_file_memory = self.log_dir / 'memory_usage.csv' if log_memory else None
         self.log_file_time = self.log_dir / 'execution_time.csv' if log_time else None
+        
+        if self.log_dir.exists():
+            # check file only has header
+            for log_file in [self.log_file_accuracy, self.log_file_memory, self.log_file_time]:
+                if log_file is not None:
+                    with open(log_file, 'r') as f:
+                        if len(f.readlines()) == 1:
+                            default_overwrite = False
+                            break
+            
+            if default_overwrite is None:
+                # ask the user if they want to overwrite the existing log
+                print(f"Log directory '{self.log_dir}' already exists.")
+                print("Do you want to overwrite the existing log? (y/n)")
+                answer = input()
+                if answer.lower() != 'y':
+                    self.terminate = True
+                    return
+                else:
+                    import shutil
+                    shutil.rmtree(self.log_dir)
+            elif default_overwrite:
+                import shutil
+                shutil.rmtree(self.log_dir)
+            else:
+                self.terminate = True
+                return
+        
+        self.log_dir.mkdir(parents=True, exist_ok=True)
+        
         
         # for log_file in [self.log_file_accuracy, self.log_memory, self.log_time]:
         #     if log_file is not None:
@@ -51,11 +82,15 @@ class ExpLogger:
         
         if self.log_file_accuracy is not None:
             with open(self.log_file_accuracy, 'w') as f:
-                f.write("time,accuracy\n")
+                f.write("name,accuracy\n")
         
         if self.log_file_time is not None:
             with open(self.log_file_time, 'w') as f:
                 f.write("name,time\n")
+        
+        if self.log_file_memory is not None:
+            with open(self.log_file_memory, 'w') as f:
+                f.write("time,memory\n")
         
         self.start_time = {}
         self.memory_process = None
@@ -81,9 +116,6 @@ class ExpLogger:
         """
         if self.log_file_memory is None:
             return
-        
-        with open(self.log_file_memory, 'w') as f:
-            f.write("time,memory\n")
                 
         self.memory_process = Process(target=measure_memory, args=(self.main_process, self.log_file_memory))
         self.memory_process.start()
@@ -97,3 +129,10 @@ class ExpLogger:
         
         self.memory_process.terminate()
         self.memory_process.join()
+        
+    def write_accuracy(self, name, accuracy):
+        if self.log_file_accuracy is None:
+            return
+        
+        with open(self.log_file_accuracy, 'a') as f:
+            f.write(f"{name},{accuracy}\n")

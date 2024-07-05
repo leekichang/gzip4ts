@@ -10,7 +10,7 @@ services:
     ipc: host
     volumes:
       - ./:/workspace
-      - ../../dataset:/dataset_kichang
+      - ../dataset/:/dataset_kichang
     deploy:
       resources:
         reservations:

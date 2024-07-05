@@ -4,7 +4,7 @@ import numpy as np
 from data.types import DataManager
 import data.config as cfg
 
-def load_raw_dataset(path="../../dataset", dataset='mitbih_arr') -> tuple[DataManager, DataManager]:
+def load_raw_dataset(path="../../dataset_kichang", dataset='mitbih_arr') -> tuple[DataManager, DataManager]:
     X = np.load(f'{path}/{dataset}/x_train.npy') # (75455, 1, 1800) float64
     Y = np.load(f'{path}/{dataset}/y_train.npy') # (75455, ) int32
     trainset = DataManager(X, Y)
