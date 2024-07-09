@@ -3,6 +3,7 @@ import gc
 import time
 
 import numpy as np
+from memory_profiler import profile
 from sklearn import metrics
 import torch
 from classifiers.gzip_classifier import GzipClassifier
@@ -11,6 +12,7 @@ from classifiers.deep_classifier import SupervisedTrainer as DeepClassifier
 from utils.arguments import str2bool, parse_args
 from utils.logger import ExpLogger
 
+# @profile
 def run_deepClassifier(args):
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
@@ -23,7 +25,7 @@ def run_deepClassifier(args):
         log_start_time=False,
         log_accuracy=not args.benchmark,
         log_memory=args.benchmark,
-        log_time=args.benchmark
+        log_time=False
     )
     
     # Step 1
@@ -35,22 +37,18 @@ def run_deepClassifier(args):
     
     # Step 2
     if args.benchmark:
-        classfier.prepare_benckmark()
         logger.set_memory()
-        time.sleep(0.1)
+        logger.start_measure_memory(0.0001)
+        logger.start_measure_time("test")
+    y_true, y_pred = classfier.test(testset)
     
     # Step 3
     if args.benchmark:
-        logger.start_measure_memory(0.0001)
-        time.sleep(0.1)
-        logger.start_measure_time("test")
-    y_true, y_pred = classfier.test(testset)
-    if args.benchmark:
         logger.end_measure_time("test")
-        del classfier
-        del testset
-        gc.collect()
-        logger.end_measure_memory()
+        logger.end_measure_memory_and_terminate()
+        # del classfier
+        # del testset
+        # gc.collect()
     
     if not args.benchmark:
         # acc = metrics.accuracy_score(y_true=y_true, y_pred=y_pred)
@@ -62,7 +60,6 @@ def run_deepClassifier(args):
         # print(metrics.classification_report(y_true, y_pred))
         print(f"bacc: {bacc}")
 
-from memory_profiler import profile
 
 # @profile
 def run_shallowClassifier(args):
@@ -76,7 +73,7 @@ def run_shallowClassifier(args):
         log_start_time=False,
         log_accuracy=not args.benchmark,
         log_memory=args.benchmark,
-        log_time=args.benchmark
+        log_time=False
     )
     
     if logger.terminate == True:
@@ -94,20 +91,18 @@ def run_shallowClassifier(args):
     # Step 2
     if args.benchmark:
         logger.set_memory()
-        time.sleep(0.1)
+        logger.start_measure_memory(0.0001)
+        logger.start_measure_time("test")
+    y_true, y_pred = classfier.test(testset)
     
     # Step 3
     if args.benchmark:
-        logger.start_measure_memory(0.0001)
-        time.sleep(0.1)
-        logger.start_measure_time("test")
-    y_true, y_pred = classfier.test(testset)
-    if args.benchmark:
         logger.end_measure_time("test")
-        del classfier
-        del testset
-        gc.collect()
-        logger.end_measure_memory()
+        time.sleep(0.1)
+        logger.end_measure_memory_and_terminate()
+        # del classfier
+        # del testset
+        # gc.collect()
     
     if not args.benchmark:
         # acc = metrics.accuracy_score(y_true=y_true, y_pred=y_pred)
@@ -140,28 +135,26 @@ def run_gzipClassifier(args):
     # Step 1
     if args.benchmark:
         logger.set_memory()
+    
     classfier = GzipClassifier()
     trainset, testset = classfier.init(args)
     
     # Step 2
     if args.benchmark:
         logger.set_memory()
-    time.sleep(0.1)
-
-    # Step 3
-    if args.benchmark:
         logger.start_measure_memory(0.0001)
-        time.sleep(0.1)
         logger.start_measure_time("all")
     y_true, y_pred = classfier.run(trainset, testset)
     
+    # Step 3
     if args.benchmark:
         logger.end_measure_time("all")
-        del classfier
-        del testset
-        gc.collect()
-        logger.end_measure_memory()
-
+        time.sleep(0.1)
+        logger.end_measure_memory_and_terminate()
+        # del classfier
+        # del testset
+        # gc.collect()
+    
     if not args.benchmark:
         # if benchmark, acc is bullshit.
         

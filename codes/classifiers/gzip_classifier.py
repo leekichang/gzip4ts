@@ -113,101 +113,77 @@ class GzipDataManager(DataManager):
 class GzipClassifier(object):
     # @profile
     def init(self, args):
-        print(
-f"""
-exp_name:{args.exp_name}
-dataset:{args.dataset}
-n_shots:{args.n_shots}
-decimal:{args.decimal}
-k:{args.k}
-method:{args.method}
-benchmark:{args.benchmark}
-seed:{args.seed}
-""")
-        GzipCfg.dataset = args.dataset
+#         print(
+# f"""
+# exp_name:{args.exp_name}
+# dataset:{args.dataset}
+# n_shots:{args.n_shots}
+# decimal:{args.decimal}
+# k:{args.k}
+# method:{args.method}
+# benchmark:{args.benchmark}
+# seed:{args.seed}
+# """)
+        
         GzipCfg.decimal = args.decimal
-        GzipCfg.method  = args.method
-        GzipCfg.n_shots = args.n_shots
         GzipCfg.k       = args.k
-        GzipCfg.seed    = args.seed
+        GzipCfg.method  = args.method
         self.benchmark = args.benchmark
         
-        self.distances_file = f"../dataset/{GzipCfg.dataset}_{GzipCfg.decimal}_{GzipCfg.method}_{GzipCfg.n_shots}_{GzipCfg.seed}_distances.npy"
-        if not args.benchmark and os.path.isfile(self.distances_file):
-            self.distances = np.load(self.distances_file)
-        else:
-            self.distances = None
-        
-        dataset_repr = GzipCfg.repr()
-        dataset_file = f"../dataset/{dataset_repr}.npz"
-        is_reading_saved = not args.benchmark and os.path.isfile(dataset_file)
-        
-        dataset_operation = "downsample" if args.method == "downsample" \
-            else None
-        
-        if is_reading_saved:
-            saved = np.load(dataset_file, allow_pickle=True)
-            # trainset_x = saved['trainset_x'].tolist()
-            # trainset_y = saved['trainset_y'].tolist()
-            # trainset = DataManager(trainset_x, trainset_y)
-            # testset_x = saved['testset_x'].tolist()
-            # testset_y = saved['testset_y'].tolist()
-            # testset = DataManager(testset_x, testset_y)
-            trainset, testset = saved['trainset'].tolist(), saved['testset'].tolist()
-            trainset = GzipDataManager().from_saved(trainset)
-            testset  = GzipDataManager().from_saved(testset)
-        else:
-            trainset = datautils.load_raw_trainset_and_select_n_shots_per_class(GzipCfg.dataset, GzipCfg.n_shots, "benchmark" if args.benchmark else dataset_operation)
-            testset = datautils.load_raw_testset(GzipCfg.dataset, dataset_operation)
+        if not args.benchmark:
+            GzipCfg.seed    = args.seed
+            GzipCfg.dataset = args.dataset
+            GzipCfg.n_shots = args.n_shots
             
-            if not args.benchmark:
+            self.distances_file = f"../dataset/{args.dataset}_{GzipCfg.decimal}_{GzipCfg.method}_{GzipCfg.n_shots}_{args.seed}_distances.npy"
+            if os.path.isfile(self.distances_file):
+                self.distances = np.load(self.distances_file)
+        
+            dataset_repr = GzipCfg.repr()
+            dataset_file = f"../dataset/{dataset_repr}.npz"
+            # is_reading_saved = not args.benchmark and 
+            
+            if os.path.isfile(dataset_file):
+                saved = np.load(dataset_file, allow_pickle=True)
+                # trainset_x = saved['trainset_x'].tolist()
+                # trainset_y = saved['trainset_y'].tolist()
+                # trainset = DataManager(trainset_x, trainset_y)
+                # testset_x = saved['testset_x'].tolist()
+                # testset_y = saved['testset_y'].tolist()
+                # testset = DataManager(testset_x, testset_y)
+                trainset, testset = saved['trainset'].tolist(), saved['testset'].tolist()
+                trainset = GzipDataManager().from_saved(trainset)
+                testset  = GzipDataManager().from_saved(testset)
+            else:
+                trainset = datautils.load_raw_trainset_and_select_n_shots_per_class(args.dataset, GzipCfg.n_shots, "benchmark" if args.benchmark else None)
+                testset = datautils.load_raw_testset(args.dataset)
                 trainset = GzipDataManager().from_datamanager(trainset)
                 testset  = GzipDataManager().from_datamanager(testset)
-            else:
-                # trainset_X_shape = trainset.X[0].shape
-                # trainset_Y_shape = trainset.Y[0].shape
-                trainset_X = deepcopy(trainset.X[0].tolist())
-                trainset_Y = deepcopy(trainset.Y[0].tolist())
-                del trainset.X
-                del trainset.Y
-                del trainset
-                gc.collect()
-                trainset = [(trainset_X, trainset_Y)]
-                
-                # print(trainset[0][0].shape, trainset[0][0].nbytes)
-                # trainset = trainset[0][0], trainset[0][1]
-                testset = deepcopy(testset[0][0])
+            
+                # Precalculate
+                trainset.precalculate()
+                testset.precalculate()
+                # Save the precalculated dataset
+                np.savez_compressed(dataset_file, trainset=trainset, testset=testset)
+        else:
+            trainset = datautils.load_raw_trainset_and_select_n_shots_per_class(args.dataset, args.n_shots, "benchmark" if args.benchmark else None)
+            testset = datautils.load_raw_testset(args.dataset)
+            trainset_X = deepcopy(trainset.X[0].tolist())
+            trainset_Y = deepcopy(trainset.Y[0].tolist())
+            del trainset.X
+            del trainset.Y
+            del trainset
+            # gc.collect()
+            trainset = [(trainset_X, trainset_Y)]
+            
+            testset = deepcopy(testset[0][0])
         
-        if not args.benchmark and not is_reading_saved:
-            # Precalculate
-            trainset.precalculate()
-            testset.precalculate()
-            # Save the precalculated dataset
-            np.savez_compressed(dataset_file, trainset=trainset, testset=testset)
-        
-        # self.trainset   = trainset
-        # self.testset    = testset
         self.channelwise = GzipCfg.method in ['cw', 'all']
         self.hybrid      = GzipCfg.method in ['hybrid', 'all']
         
         return trainset, testset
 
     # @profile
-    # def __del__(self):
-    #     del GzipCfg.dataset
-    #     del GzipCfg.decimal
-    #     del GzipCfg.method
-    #     del GzipCfg.n_shots
-    #     del GzipCfg.k
-    #     del GzipCfg.seed
-    #     del self.trainset
-        
-    #     # print all the objects that are not deleted and it's size
-    #     for d in globals():
-    #         if not d.startswith('__') and sys.getsizeof(globals()[d]) > 1024:
-    #             print(d, sys.getsizeof(globals()[d])//1024, "KB")
-
-    
     def gzip_operation(
         self,
         traindata, testdata
@@ -263,6 +239,7 @@ seed:{args.seed}
             distance = np.inf
         return distance
 
+    # @profile
     def per_trainset(self, trainset, testset):
         distance_lists = [0]*len(trainset)
         if not self.benchmark:
@@ -284,8 +261,8 @@ seed:{args.seed}
     
     # @profile
     def run(self, trainset, testset):
-        if self.distances is None:
-            if not self.benchmark:
+        if not self.benchmark:
+            if self.distances is None:
                 distance_lists = [0]*len(testset)
                 # del self.testset
                 with tqdm(total=len(testset) * len(trainset)) as pbar:
@@ -304,13 +281,13 @@ seed:{args.seed}
                 Y = testset.Y.tolist()
                 np.save(self.distances_file, distance_lists)
             else:
-                distance_lists = [[self.gzip_operation(trainset[0][0], testset)]]
-                distance_lists = distance_lists
-                Y = [0]
+                distance_lists = self.distances
+                # self_testset = self.testset
+                Y = testset.Y.tolist()
         else:
-            distance_lists = self.distances
-            # self_testset = self.testset
-            Y = testset.Y.tolist()
+            distance_lists = [[self.gzip_operation(trainset[0][0], testset)]]
+            Y = [0]
+        
         pred = self.run_knn(trainset, distance_lists)
         return Y, pred
     

@@ -1,32 +1,53 @@
 __all__ = ['ExpLogger']
 
 from datetime import datetime
+from enum import Enum, auto
 import os
 import time
 from pathlib import Path
 import gc
 
 import psutil
-from multiprocessing import Process
+from multiprocessing import Process, Value
 from threading import Thread
 
-stop_thread = [False]
+# stop_thread = [False]
+class Flag(Enum):
+    stop = auto()
+    stopped = auto()
+    run = auto()
+    running = auto()
+    terminate = auto()
+
+flag = Value('i', Flag.stopped.value)
 
 def measure_memory(process: psutil.Process, log_file_memory:Path, frequency:float):
     """
     Measure the memory usage of the main process every second.
     """
+    global flag
     try:
         with open(log_file_memory, 'a') as f:
-            while stop_thread[0] == False:
-                current_time = time.time()
-                memory = process.memory_full_info().uss
-                f.write(f"{current_time},{memory}\n")
-                f.flush()
-                # print(f"{current_time},{memory}", flush=True)
-                dt = frequency - (time.time() - current_time) - 0.01
-                if dt > 0:
-                    time.sleep(dt)
+            # print(flag, flush=True)
+            while flag.value != Flag.terminate.value:
+                # print(flag, flag.value, flush=True)
+                if flag.value == Flag.run.value:
+                    flag.value = Flag.running.value
+                if flag.value == Flag.running.value:
+                    current_time = time.time()
+                    memory = process.memory_full_info().uss
+                    f.write(f"{current_time},{memory},log\n")
+                    f.flush()
+                    # print(f"{current_time},{memory}", flush=True)
+                    dt = frequency - (time.time() - current_time) - 0.01
+                    if dt > 0:
+                        time.sleep(dt)
+                if flag.value == Flag.stop.value:
+                    flag.value = Flag.stopped.value
+                
+                if flag.value == Flag.stopped.value:
+                    time.sleep(0.1)
+                
     except Exception as e:
         print(e, flush=True)
         pass
@@ -92,6 +113,9 @@ class ExpLogger:
         #         with open(log_file, 'w') as f:
         #             f.write("")
         
+        self.memory_process = None
+        self.main_process = psutil.Process()
+        
         if self.log_file_accuracy is not None:
             with open(self.log_file_accuracy, 'w') as f:
                 f.write("name,accuracy\n")
@@ -102,11 +126,11 @@ class ExpLogger:
         
         if self.log_file_memory is not None:
             with open(self.log_file_memory, 'w') as f:
-                f.write("time,memory\n")
-        
+                f.write("time,memory,name\n")
+            self.memory_process = Process(target=measure_memory, args=(self.main_process, self.log_file_memory, .0001))
+            self.memory_process.start()
+            
         self.start_time = {}
-        self.memory_process = None
-        self.main_process = psutil.Process()
     
     def start_measure_time(self, name:str="main"):
         if self.log_file_time is None:
@@ -127,11 +151,9 @@ class ExpLogger:
             return
         
         gc.collect()
-        with open(self.log_file_memory, 'a') as f:
-            memory = self.main_process.memory_full_info().uss
-            f.write(f"{time.time()},{memory}\n")
-            f.flush()
-            # print(f"{time.time()},{memory}", flush=True)
+        self.start_measure_memory(0.0001)
+        time.sleep(0.1)
+        self.end_measure_memory()
     
     def start_measure_memory(self, frequency=0.5):
         """
@@ -141,9 +163,13 @@ class ExpLogger:
             return
         gc.collect()
         
-        self.memory_process = Thread(target=measure_memory, args=(self.main_process, self.log_file_memory, frequency))
-        stop_thread[0] = False
-        self.memory_process.start()
+        global flag
+        flag.value = Flag.run.value
+        
+        while flag.value != Flag.running.value:
+            time.sleep(0.1)
+        
+        
     
     def end_measure_memory(self):
         """
@@ -152,8 +178,22 @@ class ExpLogger:
         if self.log_file_memory is None:
             return
         
-        stop_thread[0] = True
+        # stop_thread[0] = True
         # self.memory_process.terminate()
+        global flag
+        flag.value = Flag.stop.value
+        
+        while flag.value != Flag.stopped.value:
+            time.sleep(0.1)
+    
+    def end_measure_memory_and_terminate(self):
+        if self.log_file_memory is None:
+            return
+        
+        # stop_thread[0] = True
+        # self.memory_process.terminate()
+        global flag
+        flag.value = Flag.terminate.value
         self.memory_process.join()
         
     def write_accuracy(self, name, accuracy):

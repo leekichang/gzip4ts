@@ -9,9 +9,11 @@ from datetime import datetime
 import sklearn.metrics as metrics
 from torch.utils.data import DataLoader
 
+import torchsummary
 import classifiers.models
 import data.config as cfg
 from data.types import DataManager, TensorDataset
+from memory_profiler import profile
 
 import torch.utils.tensorboard as tb
 import data.utils as datautils
@@ -23,6 +25,7 @@ def build_model(args):
     return getattr(classifiers.models, args.model)(input_size, input_channel=n_channel, num_label=n_class)
 
 class SupervisedTrainer:
+    # @profile
     def init(self, args):
         
         testset  = datautils.load_raw_testset(args.dataset)
@@ -38,7 +41,9 @@ class SupervisedTrainer:
             trainset = datautils.load_raw_trainset_and_select_n_shots_per_class(args.dataset, self.n_shots)
             testset  = TensorDataset(testset)
             trainset = TensorDataset(trainset)
-        
+            self.optimizer    = optim.Adam(self.model.parameters(), lr=0.001)
+            self.criterion    = nn.CrossEntropyLoss()
+            
         self.epochs       = args.epochs
         try:
             self.device       = torch.device(args.device)
@@ -47,9 +52,7 @@ class SupervisedTrainer:
         self.model        = build_model(args) # ResNet(input_size=input_size, input_channel=n_channel, num_label=n_class)
         
         self.batch_size   = args.batch_size
-        self.model.to(self.device)
-        self.optimizer    = optim.Adam(self.model.parameters(), lr=0.001)
-        self.criterion    = nn.CrossEntropyLoss()
+        
         
         model_repr = f"{args.dataset}_{args.n_shots}_{args.model}_{self.epochs}_{args.batch_size}_{args.seed}"
         self.save_path = f"../model_ckpts/deep/{model_repr}.pt"
@@ -62,7 +65,6 @@ class SupervisedTrainer:
         return trainset, testset
     
     def train_per_epoch(self, train_loader, epoch):
-        self.model.train()
         losses = []
         preds, targets = [], []
         for X, Y in train_loader:
@@ -90,8 +92,11 @@ class SupervisedTrainer:
         
     def train(self, trainset, load_saved=False):
         if load_saved and os.path.isfile(self.save_path):
-            self.model.load_state_dict(torch.load(self.save_path))
+            self.model.load_state_dict(torch.load(self.save_path, map_location=self.device))
             return
+        
+        self.model.to(self.device)
+        self.model.train()
         train_loader = DataLoader(trainset, batch_size=self.batch_size, shuffle=True , drop_last=False)
         for epoch in range(self.epochs):
             self.train_per_epoch(train_loader, epoch+1)
@@ -99,9 +104,6 @@ class SupervisedTrainer:
             
         torch.save(self.model.state_dict(), self.save_path)
     
-    def prepare_benckmark(self):
-        del self.optimizer
-        del self.criterion
     
     @torch.no_grad()
     def test(self, testset):
@@ -109,12 +111,12 @@ class SupervisedTrainer:
         device = 'cpu' if self.benchmark else self.device
         batch_size = 1 if self.benchmark else self.batch_size
         
+        self.model.to(device)
         testloader = DataLoader(testset, batch_size=batch_size, shuffle=False)
-        if self.benchmark:
-            self.model.to('cpu')
         
         preds, targets = [], []
         for X, Y in testloader:
+            # torchsummary.summary(self.model, X.shape[1:], device=device)
             X = X.to(device)
             pred = self.model(X)
             preds.append(np.argmax(pred.cpu().numpy(), axis=-1))

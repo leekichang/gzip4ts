@@ -15,9 +15,7 @@ For memory trace
 def load_raw_trainset(dataset, n_shots, dataset_operation=None) -> DataManager:
     X = np.load(f'../../dataset_kichang/{dataset}/x_train.npy') # (75455, 1, 1800) float64
     Y = np.load(f'../../dataset_kichang/{dataset}/y_train.npy') # (75455, ) int32
-    if dataset_operation == "downsample":
-        X = X[:, :, ::2]
-    
+
     if dataset_operation == "benchmark":
         X = X[:1]
         Y = Y[:1]
@@ -34,9 +32,6 @@ def load_raw_trainset(dataset, n_shots, dataset_operation=None) -> DataManager:
     del idxs_n_shot
     del idxs_n_shots
     
-    if dataset_operation == "coreset":
-        # Coreset sampling
-        pass
     trainset = DataManager(X, Y)
     # del X
     # del Y
