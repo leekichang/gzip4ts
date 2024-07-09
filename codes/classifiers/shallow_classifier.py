@@ -1,69 +1,74 @@
+from copy import deepcopy
 import os
+import pickle
 import numpy as np
 import pandas as pd
+import gc
 from datetime import datetime
+from sklearn.gaussian_process import GaussianProcessClassifier
 import sklearn.metrics as metrics
+from sklearn.naive_bayes import GaussianNB
+from sklearn.neural_network import MLPClassifier
 from sklearn.svm import SVC
 from sklearn.ensemble import AdaBoostClassifier, RandomForestClassifier
+from sklearn.tree import DecisionTreeClassifier
 
-import codes.utils.utils as utils
+from data.types import DataManager
+import data.utils as datautils
+import joblib
 
-import torch.utils.tensorboard as tb
-
+from memory_profiler import profile
 class MLTrainer:
-    def __init__(self, args):
-        self.args         = args
-        self.save_path    = f'./checkpoints/{args.exp_name}'
-        os.makedirs(self.save_path, exist_ok=True)
-        self.trainset,\
-        self.testset      = utils.load_dataset(dataset=args.dataset)
-        self.trainset     = utils.choose_trainset(self.trainset, args)
-        self.model        = AdaBoostClassifier() if args.model == 'AB' else RandomForestClassifier()
-
-    def train(self):
-        B = self.trainset.X.shape[0]
-        data = self.trainset.X.reshape(B, -1)
-        self.model.fit(X=data, y=self.trainset.Y)
-
-    def test(self):
-        B = self.testset.X.shape[0]
-        data = self.testset.X.reshape(B, -1)
-        targets = self.testset.Y
-        preds = self.model.predict(X=data)
-        targets = utils.convert_array(targets, 2)
-        preds = utils.convert_array(preds, 2)
-        self.acc = metrics.accuracy_score(y_true=targets, y_pred=preds)
-        self.bacc = metrics.balanced_accuracy_score(y_true=targets, y_pred=preds)
-        if not os.path.isfile(f'./results/n_shot_{self.args.dataset}_{self.args.model}.csv'):
-            result = {self.args.n_shots:{self.args.model:self.bacc}}
-            df = pd.DataFrame.from_dict(result)
+    # @profile
+    def init(self, args):
+        self.model   = args.model
+        self.n_shots = args.n_shots
+        self.benchmark = args.benchmark
+        
+        testset  = datautils.load_raw_testset(args.dataset)
+        if self.benchmark:
+            testset = DataManager(testset.X[:1].copy(), testset.Y[:1].copy())
+            trainset = None
         else:
-            df = pd.read_csv(f'./results/n_shot_{self.args.dataset}_{self.args.model}.csv', encoding='cp949', index_col=0)
-
-            # Check if the model exists in the DataFrame
-            if self.args.model in df.index:
-                # Check if the n_shots exists for the model
-                if str(self.args.n_shots) in df.columns:
-                    df.loc[self.args.model, str(self.args.n_shots)] = self.bacc
-                else:
-                    df[str(self.args.n_shots)] = None  # Add a new column for the n_shots
-                    df.loc[self.args.model, str(self.args.n_shots)] = self.bacc
-            else:
-                # Add the model if it doesn't exist
-                df.loc[self.args.model] = None
-                df[str(self.args.n_shots)] = None
-                df.loc[self.args.model, str(self.args.n_shots)] = self.bacc
-
-            # Rename the index column to the model name
-        df.index.name = 'Model'
-        print(df)
-        df.to_csv(f'./results/n_shot_{self.args.dataset}_{self.args.model}.csv', encoding='cp949')
-        print(f'ACC:{self.acc:.4f}  BalACC:{self.bacc:.4f}', flush=True)
-
-if __name__ == '__main__':
-    from tqdm import tqdm
-    args = utils.parse_args()
-    trainer = MLTrainer(args)
-    trainer.train()
-    trainer.test()
+            testset = DataManager(testset.X, testset.Y)
+            trainset = datautils.load_raw_trainset_and_select_n_shots_per_class(args.dataset, self.n_shots)
+        
+        self.model        = \
+            SVC() if self.model == 'SVC' else \
+            DecisionTreeClassifier() if self.model == 'DT' else \
+            RandomForestClassifier() if self.model == 'RF' else \
+            GaussianProcessClassifier() if self.model == 'GP' else \
+            AdaBoostClassifier() if self.model == 'AB' else \
+            MLPClassifier()   if self.model == 'MLP' else None
+            
+        self.save_path = f"../model_ckpts/shallow/{args.dataset}_{args.n_shots}_{args.model}_{args.seed}.pkl"
+        
+        return trainset, testset
     
+    def train(self, trainset, load_saved=False):
+        if load_saved and os.path.isfile(self.save_path):
+            try:
+                with open(self.save_path, "rb") as f:
+                    self.model = pickle.load(f)
+            except:
+                self.model = joblib.load(self.save_path)
+                with open(self.save_path, "wb") as f:
+                    pickle.dump(self.model, f)
+                with open(self.save_path, "rb") as f:
+                    self.model = pickle.load(f)
+        else:
+            trainset = DataManager(trainset.X, trainset.Y)
+            
+            B = trainset.X.shape[0]
+            data = trainset.X.reshape(B, -1)
+            self.model.fit(X=data, y=trainset.Y)
+            with open(self.save_path, "wb") as f:
+                pickle.dump(self.model, f)
+
+        
+    def test(self, testset):
+        B = testset.X.shape[0]
+        data = testset.X.reshape(B, -1)
+        targets = testset.Y
+        preds = self.model.predict(X=data)
+        return targets, preds

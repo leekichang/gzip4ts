@@ -1,24 +1,35 @@
 __all__ = ['ExpLogger']
 
 from datetime import datetime
+import os
 import time
 from pathlib import Path
+import gc
 
 import psutil
 from multiprocessing import Process
+from threading import Thread
 
-def measure_memory(process: psutil.Process, log_file_memory:Path):
+stop_thread = [False]
+
+def measure_memory(process: psutil.Process, log_file_memory:Path, frequency:float):
     """
     Measure the memory usage of the main process every second.
     """
-    with open(log_file_memory, 'a') as f:
-        while True:
-            current_time = time.time()
-            memory = process.memory_info().rss
-            f.write(f"{current_time},{memory}\n")
-            f.flush()
-            time.sleep(0.5 - (time.time() - current_time - 0.01))
-    
+    try:
+        with open(log_file_memory, 'a') as f:
+            while stop_thread[0] == False:
+                current_time = time.time()
+                memory = process.memory_full_info().uss
+                f.write(f"{current_time},{memory}\n")
+                f.flush()
+                # print(f"{current_time},{memory}", flush=True)
+                dt = frequency - (time.time() - current_time) - 0.01
+                if dt > 0:
+                    time.sleep(dt)
+    except Exception as e:
+        print(e, flush=True)
+        pass
 
 class ExpLogger:
     """
@@ -50,8 +61,9 @@ class ExpLogger:
             for log_file in [self.log_file_accuracy, self.log_file_memory, self.log_file_time]:
                 if log_file is not None:
                     with open(log_file, 'r') as f:
-                        if len(f.readlines()) == 1:
-                            default_overwrite = False
+                        if len(f.readlines()) <= 1:
+                            default_overwrite = True
+                            print(f"Log file '{log_file}' only has header. Overwriting the log.")
                             break
             
             if default_overwrite is None:
@@ -110,14 +122,27 @@ class ExpLogger:
         with open(self.log_file_time, 'a') as f:
             f.write(f"{name},{exec_time}\n")  
     
-    def start_measure_memory(self):
+    def set_memory(self):
+        if self.log_file_memory is None:
+            return
+        
+        gc.collect()
+        with open(self.log_file_memory, 'a') as f:
+            memory = self.main_process.memory_full_info().uss
+            f.write(f"{time.time()},{memory}\n")
+            f.flush()
+            # print(f"{time.time()},{memory}", flush=True)
+    
+    def start_measure_memory(self, frequency=0.5):
         """
         Start a process to log the memory usage
         """
         if self.log_file_memory is None:
             return
-                
-        self.memory_process = Process(target=measure_memory, args=(self.main_process, self.log_file_memory))
+        gc.collect()
+        
+        self.memory_process = Thread(target=measure_memory, args=(self.main_process, self.log_file_memory, frequency))
+        stop_thread[0] = False
         self.memory_process.start()
     
     def end_measure_memory(self):
@@ -127,7 +152,8 @@ class ExpLogger:
         if self.log_file_memory is None:
             return
         
-        self.memory_process.terminate()
+        stop_thread[0] = True
+        # self.memory_process.terminate()
         self.memory_process.join()
         
     def write_accuracy(self, name, accuracy):
@@ -136,3 +162,4 @@ class ExpLogger:
         
         with open(self.log_file_accuracy, 'a') as f:
             f.write(f"{name},{accuracy}\n")
+            f.flush()

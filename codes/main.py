@@ -1,122 +1,180 @@
+import argparse
+import gc
+import time
+
 import numpy as np
-from utils import ExpLogger, arguments
+from sklearn import metrics
+import torch
+from classifiers.gzip_classifier import GzipClassifier
+from classifiers.shallow_classifier import MLTrainer as ShallowClassifier
+from classifiers.deep_classifier import SupervisedTrainer as DeepClassifier
+from utils.arguments import str2bool, parse_args
+from utils.logger import ExpLogger
 
-def test_ExpLogger():
-    logger = ExpLogger(
-        "../results/journal",
-        log_accuracy=True,
-        log_memory=True,
-        log_time=True
-    )
-    
-    import time
-    
-    logger.start_measure_memory()
-    logger.start_measure_time("test")
-    time.sleep(2)
-    logger.end_measure_time("test")
-    logger.start_measure_time("test")
-    time.sleep(2)
-    logger.end_measure_time("test")
-    logger.end_measure_memory()
-
-def test_rawdataset(args):
-    from data.utils import load_raw_dataset
-    trainset, testset = load_raw_dataset(
-        dataset=args.dataset,
-    )
-    
-    print(trainset.X.shape, trainset.Y.shape)
-    print(testset.X.shape, testset.Y.shape)
-
-def run_gzipClassifier(args):
-    
+def run_deepClassifier(args):
     np.random.seed(args.seed)
-    
-    from classifiers.gzip_classifier import GzipClassifier
-    from sklearn import metrics
+    torch.manual_seed(args.seed)
     
     logger = ExpLogger(
         "../results/journal",
         exp_name=f"{args.exp_name}",
-        tag=f"{args.dataset}_{args.n_shots}_{args.decimal}_{args.k}_{args.method}_{args.benchmark}_{args.seed}",
-        default_overwrite=False,
+        tag=f"{args.dataset}_{args.n_shots}_{args.model}_{args.epochs}_{args.batch_size}_{args.benchmark}_{args.seed}",
+        default_overwrite=args.overwrite,
         log_start_time=False,
-        log_accuracy=True,
-        log_memory=True,
-        log_time=True
+        log_accuracy=not args.benchmark,
+        log_memory=args.benchmark,
+        log_time=args.benchmark
+    )
+    
+    # Step 1
+    if args.benchmark:
+        logger.set_memory()
+    classfier = DeepClassifier()
+    trainset, testset = classfier.init(args)
+    classfier.train(trainset, load_saved=True)
+    
+    # Step 2
+    if args.benchmark:
+        classfier.prepare_benckmark()
+        logger.set_memory()
+        time.sleep(0.1)
+    
+    # Step 3
+    if args.benchmark:
+        logger.start_measure_memory(0.0001)
+        time.sleep(0.1)
+        logger.start_measure_time("test")
+    y_true, y_pred = classfier.test(testset)
+    if args.benchmark:
+        logger.end_measure_time("test")
+        del classfier
+        del testset
+        gc.collect()
+        logger.end_measure_memory()
+    
+    if not args.benchmark:
+        # acc = metrics.accuracy_score(y_true=y_true, y_pred=y_pred)
+        bacc = metrics.balanced_accuracy_score(y_true=y_true, y_pred=y_pred)
+        # conf_mat = metrics.confusion_matrix(y_true=y_true, y_pred=y_pred)
+        
+        logger.write_accuracy("bacc", bacc)
+        logger.write_accuracy("conf_mat", metrics.confusion_matrix(y_true=y_true, y_pred=y_pred))
+        # print(metrics.classification_report(y_true, y_pred))
+        print(f"bacc: {bacc}")
+
+from memory_profiler import profile
+
+# @profile
+def run_shallowClassifier(args):
+    np.random.seed(args.seed)
+    
+    logger = ExpLogger(
+        "../results/journal",
+        exp_name=f"{args.exp_name}",
+        tag=f"{args.dataset}_{args.n_shots}_{args.model}_{args.benchmark}_{args.seed}",
+        default_overwrite=args.overwrite,
+        log_start_time=False,
+        log_accuracy=not args.benchmark,
+        log_memory=args.benchmark,
+        log_time=args.benchmark
     )
     
     if logger.terminate == True:
         return
     
-    logger.start_measure_memory()
-    logger.start_measure_time("all")
-    classfier = GzipClassifier(args)
-    y_true, y_pred = classfier.run()
-    logger.end_measure_time("all")
-    del classfier
-    logger.end_measure_memory()
+    # Step 1
+    if args.benchmark:
+        logger.set_memory()
     
-    # acc = metrics.accuracy_score(y_true=y_true, y_pred=y_pred)
-    bacc = metrics.balanced_accuracy_score(y_true=y_true, y_pred=y_pred)
-    # conf_mat = metrics.confusion_matrix(y_true=y_true, y_pred=y_pred)
+   
+    classfier = ShallowClassifier()
+    trainset, testset = classfier.init(args)
+    classfier.train(trainset, load_saved=True)
     
-    logger.write_accuracy("bacc", bacc)
-    logger.write_accuracy("conf_mat", metrics.confusion_matrix(y_true=y_true, y_pred=y_pred))
-    # print(metrics.classification_report(y_true, y_pred))
-    print(f"bacc: {bacc}")
-
-def exp1_rungzip_variousparam_0724():
-    """
-    Accuracy is precise
-    others are not precise
-    """
+    # Step 2
+    if args.benchmark:
+        logger.set_memory()
+        time.sleep(0.1)
     
-    from tqdm import tqdm
-    import argparse
-    import itertools
+    # Step 3
+    if args.benchmark:
+        logger.start_measure_memory(0.0001)
+        time.sleep(0.1)
+        logger.start_measure_time("test")
+    y_true, y_pred = classfier.test(testset)
+    if args.benchmark:
+        logger.end_measure_time("test")
+        del classfier
+        del testset
+        gc.collect()
+        logger.end_measure_memory()
     
-    exp_name = "exp1_rungzip_variousparam_0724"
-    datasets = ["mitbih_arr", "pamap2", "mitbih_auth"]
-    n_shots = [1, 2, 3, 4, 8, 16, 32] # [1, 2, 3, 4, 8, 16, 32, 64]
-    ks = [1, 3, 5, 7, 9, 21] # [1, 3, 5, 7, 9, 21]
-    decimals = [1, 2, 3, 4, 5] # [ 1, 2, 3, 4, 5, 6, 7, 8 ,16]
-    seeds = range(3)
-    methods = ["default", "all"]
-    
-    combinations = list(itertools.product(datasets, n_shots, methods, decimals, ks, seeds))
-    
-    for dataset, n_shot, method, decimal, k, seed in tqdm(combinations):
-        if method == "default":
-            if decimal != 1:
-                continue
-            else:
-                decimal = None
-                
-        args = argparse.Namespace(
-            exp_name=exp_name,
-            dataset=dataset,
-            seed=seed,
-            n_shots=n_shot,
-            decimal=decimal,
-            k=k,
-            method=method,
-            benchmark=False
-        )
+    if not args.benchmark:
+        # acc = metrics.accuracy_score(y_true=y_true, y_pred=y_pred)
+        bacc = metrics.balanced_accuracy_score(y_true=y_true, y_pred=y_pred)
+        # conf_mat = metrics.confusion_matrix(y_true=y_true, y_pred=y_pred)
         
-        run_gzipClassifier(args)
+        logger.write_accuracy("bacc", bacc)
+        logger.write_accuracy("conf_mat", metrics.confusion_matrix(y_true=y_true, y_pred=y_pred))
+        # print(metrics.classification_report(y_true, y_pred))
+        print(f"bacc: {bacc}", flush=True)
 
-if __name__ == '__main__':
-    # args = arguments.parse_args()
+# @profile
+def run_gzipClassifier(args):
+    np.random.seed(args.seed)
+
+    logger = ExpLogger(
+        "../results/journal",
+        exp_name=f"{args.exp_name}",
+        tag=f"{args.dataset}_{args.n_shots}_{args.decimal}_{args.k}_{args.method}_{args.benchmark}_{args.seed}",
+        default_overwrite=args.overwrite,
+        log_start_time=False,
+        log_accuracy=not args.benchmark,
+        log_memory=args.benchmark,
+        log_time=False
+    )
+
+    if logger.terminate == True:
+        return
+
+    # Step 1
+    if args.benchmark:
+        logger.set_memory()
+    classfier = GzipClassifier()
+    trainset, testset = classfier.init(args)
     
-    # import pprint
-    # pprint.pprint(args)
+    # Step 2
+    if args.benchmark:
+        logger.set_memory()
+    time.sleep(0.1)
+
+    # Step 3
+    if args.benchmark:
+        logger.start_measure_memory(0.0001)
+        time.sleep(0.1)
+        logger.start_measure_time("all")
+    y_true, y_pred = classfier.run(trainset, testset)
     
-    # np.random.seed(args.seed)
+    if args.benchmark:
+        logger.end_measure_time("all")
+        del classfier
+        del testset
+        gc.collect()
+        logger.end_measure_memory()
+
+    if not args.benchmark:
+        # if benchmark, acc is bullshit.
+        
+        # acc = metrics.accuracy_score(y_true=y_true, y_pred=y_pred)
+        bacc = metrics.balanced_accuracy_score(y_true=y_true, y_pred=y_pred)
+        # conf_mat = metrics.confusion_matrix(y_true=y_true, y_pred=y_pred)
+        
+        logger.write_accuracy("bacc", bacc)
+        logger.write_accuracy("conf_mat", metrics.confusion_matrix(y_true=y_true, y_pred=y_pred))
+        # print(metrics.classification_report(y_true, y_pred))
+        print(f"bacc: {bacc}")
+
+if __name__ == "__main__":
+    args = parse_args()
     
-    # test_ExpLogger()
-    exp1_rungzip_variousparam_0724()
-    
-    
-    
+    eval(f"run_{args.scheme}Classifier")(args)

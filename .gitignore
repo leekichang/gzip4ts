@@ -167,3 +167,4 @@ cython_debug/
 results/
 ploting/
 dataset/
+model_ckpts/
